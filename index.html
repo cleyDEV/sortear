@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteador de Números</title>
+    <!-- Adicione estas 4 linhas abaixo: -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --danger: #EF4444;
+            --danger-hover: #DC2626;
+            --success: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            margin-top: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Cards Gerais */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Configurações */
+        .inputs-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-align: center;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 5px 0;
+        }
+
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .checkbox-group span {
+            font-size: 0.95rem;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        /* Área do Sorteio */
+        .draw-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .result-display {
+            font-size: 5rem;
+            font-weight: 800;
+            color: var(--primary);
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #EEF2FF;
+            width: 100%;
+            border-radius: 16px;
+            letter-spacing: -2px;
+            transition: transform 0.1s;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Ações Secundárias e Contadores */
+        .actions-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            background-color: #E5E7EB;
+        }
+
+        .counters {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Histórico */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-header h2 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-danger {
+            background-color: #FEE2E2;
+            color: var(--danger);
+        }
+        .btn-danger:hover { background-color: #FECACA; }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover { background-color: var(--bg-color); }
+
+        ul.history-list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        ul.history-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            font-weight: 600;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .history-index {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .history-value {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .empty-history {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 20px 0;
+        }
+
+        /* Notificação Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--text-main);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Scrollbar customizada para o histórico */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>Sorteador de Números</h1>
+            <p>Escolha o intervalo e faça seu sorteio.</p>
+        </header>
+
+        <div class="card">
+            <div class="inputs-row">
+                <div class="input-group">
+                    <label for="minVal">De:</label>
+                    <input type="number" id="minVal" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="maxVal">Até:</label>
+                    <input type="number" id="maxVal" value="100" min="1">
+                </div>
+            </div>
+            <label class="checkbox-group">
+                <input type="checkbox" id="noRepeat" checked>
+                <span>Não repetir números sorteados</span>
+            </label>
+        </div>
+
+        <div class="card draw-area">
+            <div class="result-display" id="resultDisplay">-</div>
+            
+            <button id="drawBtn" class="btn btn-primary">🎲 SORTEAR</button>
+
+            <div class="counters">
+                <span id="drawnCount">Sorteados: 0</span>
+                <span id="remainingCount">Disponíveis: ∞</span>
+            </div>
+
+            <div class="actions-row">
+                <button id="copyBtn" class="btn-secondary" disabled>Copiar</button>
+                <button id="shareBtn" class="btn-secondary" disabled>Compartilhar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="history-header">
+                <h2>Histórico</h2>
+                <div class="history-actions">
+                    <button id="newDrawBtn" class="btn-small btn-outline">Novo Sorteio</button>
+                    <button id="clearBtn" class="btn-small btn-danger">Limpar</button>
+                </div>
+            </div>
+            <ul id="historyList" class="history-list">
+                <div class="empty-history">Nenhum número sorteado ainda.</div>
+            </ul>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Mensagem</div>
+
+    <script>
+        // Elementos do DOM
+        const minInput = document.getElementById('minVal');
+        const maxInput = document.getElementById('maxVal');
+        const noRepeatCheckbox = document.getElementById('noRepeat');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const drawBtn = document.getElementById('drawBtn');
+        const drawnCountEl = document.getElementById('drawnCount');
+        const remainingCountEl = document.getElementById('remainingCount');
+        const copyBtn = document.getElementById('copyBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const historyList = document.getElementById('historyList');
+        const clearBtn = document.getElementById('clearBtn');
+        const newDrawBtn = document.getElementById('newDrawBtn');
+        const toast = document.getElementById('toast');
+
+        // Estado do Aplicativo
+        let history = [];
+        let isDrawing = false;
+        let lastDrawn = null;
+
+        // Inicialização
+        function init() {
+            loadState();
+            updateUI();
+            setupEventListeners();
+        }
+
+        // Carregar do Local Storage
+        function loadState() {
+            try {
+                const savedState = localStorage.getItem('sorteador_estado');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    history = state.history || [];
+                    minInput.value = state.min || 1;
+                    maxInput.value = state.max || 100;
+                    noRepeatCheckbox.checked = state.noRepeat !== undefined ? state.noRepeat : true;
+                }
+            } catch (e) {
+                console.error("Erro ao carregar histórico local:", e);
+            }
+        }
+
+        // Salvar no Local Storage
+        function saveState() {
+            const state = {
+                history: history,
+                min: parseInt(minInput.value),
+                max: parseInt(maxInput.value),
+                noRepeat: noRepeatCheckbox.checked
+            };
+            localStorage.setItem('sorteador_estado', JSON.stringify(state));
+        }
+
+        // Validações
+        function validateInputs() {
+            let min = parseInt(minInput.value);
+            let max = parseInt(maxInput.value);
+
+            if (isNaN(min) || min <= 0) {
+                showToast("O número mínimo deve ser maior que 0.");
+                return null;
+            }
+            if (isNaN(max) || max <= 0) {
+                showToast("O número máximo deve ser maior que 0.");
+                return null;
+            }
+            if (min >= max) {
+                showToast("O número inicial deve ser menor que o final.");
+                return null;
+            }
+            return { min, max };
+        }
+
+        // Lógica do Sorteio
+        function drawNumber() {
+            if (isDrawing) return;
+            
+            const limits = validateInputs();
+            if (!limits) return;
+
+            const { min, max } = limits;
+            const noRepeat = noRepeatCheckbox.checked;
+            const totalAvailable = (max - min) + 1;
+
+            if (noRepeat && history.length >= totalAvailable) {
+                showToast("Todos os números do intervalo já foram sorteados!");
+                return;
+            }
+
+            isDrawing = true;
+            drawBtn.disabled = true;
+            minInput.disabled = true;
+            maxInput.disabled = true;
+            noRepeatCheckbox.disabled = true;
+
+            // Animação de sorteio
+            let counter = 0;
+            const animationInterval = setInterval(() => {
+                const randomVisual = Math.floor(Math.random() * (max - min + 1)) + min;
+                resultDisplay.textContent = randomVisual;
+                resultDisplay.style.transform = `scale(${1 + (Math.random() * 0.1)})`;
+                counter++;
+
+                if (counter > 20) { // Aproximadamente 1 segundo (20 * 50ms)
+                    clearInterval(animationInterval);
+                    resultDisplay.style.transform = "scale(1)";
+                    finalizeDraw(min, max, noRepeat);
+                }
+            }, 50);
+        }
+
+        // Finalizar sorteio e definir número real
+        function finalizeDraw(min, max, noRepeat) {
+            let finalNumber;
+            
+            if (noRepeat) {
+                // Previne repetição
+                do {
+                    finalNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+                } while (history.includes(finalNumber));
+            } else {
+                finalNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            lastDrawn = finalNumber;
+            resultDisplay.textContent = finalNumber;
+            
+            // Adicionar ao topo do histórico
+            history.unshift(finalNumber);
+            
+            saveState();
+            updateUI();
+            
+            isDrawing = false;
+            drawBtn.disabled = false;
+            minInput.disabled = false;
+            maxInput.disabled = false;
+            noRepeatCheckbox.disabled = false;
+        }
+
+        // Atualizar Interface
+        function updateUI() {
+            // Histórico
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-history">Nenhum número sorteado ainda.</div>';
+                resultDisplay.textContent = '-';
+                copyBtn.disabled = true;
+                shareBtn.disabled = true;
+            } else {
+                historyList.innerHTML = '';
+                // Renderizar itens do histórico com base no tamanho do array para indexação correta
+                const total = history.length;
+                history.forEach((num, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="history-index">Sorteio #${total - index}</span>
+                        <span class="history-value">${num}</span>
+                    `;
+                    historyList.appendChild(li);
+                });
+
+                if(!isDrawing) {
+                   resultDisplay.textContent = history[0]; // Mostrar o último caso recarregue a página
+                   lastDrawn = history[0];
+                   copyBtn.disabled = false;
+                   shareBtn.disabled = false;
+                }
+            }
+
+            // Contadores
+            const min = parseInt(minInput.value) || 0;
+            const max = parseInt(maxInput.value) || 0;
+            const noRepeat = noRepeatCheckbox.checked;
+
+            drawnCountEl.textContent = `Sorteados: ${history.length}`;
+            
+            if (noRepeat && min < max) {
+                const available = (max - min + 1) - history.length;
+                remainingCountEl.textContent = `Disponíveis: ${Math.max(0, available)}`;
+            } else {
+                remainingCountEl.textContent = `Disponíveis: ∞`;
+            }
+        }
+
+        // Ações extras
+        function copyResult() {
+            if (!lastDrawn) return;
+            navigator.clipboard.writeText(lastDrawn).then(() => {
+                showToast("Número copiado para a área de transferência!");
+            });
+        }
+
+        function shareResult() {
+            if (!lastDrawn) return;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Resultado do Sorteio',
+                    text: `O número sorteado foi: ${lastDrawn}!`
+                }).catch(console.error);
+            } else {
+                copyResult();
+                showToast("Compartilhamento nativo não suportado. Número copiado!");
+            }
+        }
+
+        function clearHistory() {
+            if (history.length === 0) return;
+            if (confirm("Tem certeza que deseja apagar o histórico?")) {
+                history = [];
+                lastDrawn = null;
+                saveState();
+                updateUI();
+                showToast("Histórico limpo com sucesso!");
+            }
+        }
+
+        function newDrawSession() {
+            if (history.length > 0) {
+                if (confirm("Iniciar novo sorteio? Isso limpará os resultados atuais.")) {
+                    history = [];
+                    lastDrawn = null;
+                    saveState();
+                    updateUI();
+                }
+            }
+        }
+
+        // Toast Notification
+        let toastTimeout;
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            drawBtn.addEventListener('click', drawNumber);
+            copyBtn.addEventListener('click', copyResult);
+            shareBtn.addEventListener('click', shareResult);
+            clearBtn.addEventListener('click', clearHistory);
+            newDrawBtn.addEventListener('click', newDrawSession);
+            
+            // Salvar estado ao alterar configurações e resetar contador disponíveis
+            [minInput, maxInput, noRepeatCheckbox].forEach(el => {
+                el.addEventListener('change', () => {
+                    saveState();
+                    updateUI();
+                });
+            });
+
+            // Tecla Enter para sortear
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    // Evita disparar se o usuário estiver digitando no input
+                    if (document.activeElement !== minInput && document.activeElement !== maxInput) {
+                        e.preventDefault();
+                        drawBtn.click();
+                    }
+                }
+            });
+        }
+
+        // Iniciar
+        init();
+    </script>
+</body>
+</html>
